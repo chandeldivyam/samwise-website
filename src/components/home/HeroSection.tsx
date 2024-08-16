@@ -2,11 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { Box, Container, Grid, TextField, InputAdornment, Button as MuiButton } from '@mui/material';
 import { motion } from 'framer-motion';
 import Typography from '../common/Typography';
-import Button from '../common/Button';
 import IdeaFlowAnimation from './IdeaFlowAnimation';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import StarIcon from '@mui/icons-material/Star';
 import DiscordIcon from '../../utils/DiscordIcon';
+import { trackButtonClick } from '@/utils/posthog';
 
 const phrases = [
   "Speak powerfully.",
@@ -54,6 +54,14 @@ const HeroSection: React.FC = () => {
     const timer = setTimeout(animateText, isDeleting ? 50 : 100);
     return () => clearTimeout(timer);
   }, [text, isDeleting, currentPhrase]);
+
+  const handleGitHubClick = () => {
+    trackButtonClick('GitHub', 'hero_section');
+  };
+
+  const handleDiscordClick = () => {
+    trackButtonClick('Discord', 'hero_section');
+  };
 
   return (
     <Box
@@ -122,6 +130,7 @@ const HeroSection: React.FC = () => {
                   target="_blank"
                   rel="noopener noreferrer"
                   startIcon={<GitHubIcon />}
+                  onClick={handleGitHubClick}
                   sx={{
                     fontSize: '1.2rem',
                     py: 1.5,
@@ -161,6 +170,7 @@ const HeroSection: React.FC = () => {
                   target="_blank"
                   rel="noopener noreferrer"
                   startIcon={<DiscordIcon />}
+                  onClick={handleDiscordClick}
                   sx={{
                     fontSize: '1.2rem',
                     py: 1.5,
