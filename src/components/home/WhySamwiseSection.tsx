@@ -1,14 +1,10 @@
 // src/components/home/WhySamwiseSection.tsx
 
 import React from 'react';
-import { Box, Container, Grid, Typography, useMediaQuery } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
+import { Box, Container, Grid, Typography } from '@mui/material';
 import { motion } from 'framer-motion';
 
 const WhySamwiseSection: React.FC = () => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-
   return (
     <Box sx={{ py: 10, backgroundColor: '#f0f4f8' }}>
       <Container maxWidth="lg">
@@ -45,23 +41,18 @@ const WhySamwiseSection: React.FC = () => {
                   boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
                 }}
               >
-                <video
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                  }}
-                >
-                  <source src="/samwise_why.mp4" type="video/mp4" />
-                  Your browser does not support the video tag.
-                </video>
+                <img
+                    src="/samwise_why.gif"
+                    alt="Samwise GIF"
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                    }}
+                  />
                 <Box
                   sx={{
                     position: 'absolute',
