@@ -1,0 +1,41 @@
+{
+  "name": "samwise-website",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@emotion/cache": "^11.13.1",
+    "@emotion/react": "^11.13.0",
+    "@emotion/server": "^11.11.0",
+    "@emotion/styled": "^11.13.0",
+    "@mui/icons-material": "^5.16.7",
+    "@mui/material": "^5.16.7",
+    "@react-three/drei": "^9.109.5",
+    "@react-three/fiber": "^8.17.5",
+    "framer-motion": "^11.3.27",
+    "next": "14.2.5",
+    "react": "^18",
+    "react-dom": "^18",
+    "react-intersection-observer": "^9.13.0",
+    "sharp": "^0.33.4",
+    "three": "^0.167.1"
+  },
+  "devDependencies": {
+    "@types/debounce": "^1.2.4",
+    "@types/draco3d": "^1.4.10",
+    "@types/node": "^20",
+    "@types/offscreencanvas": "^2019.7.3",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "@types/react-reconciler": "^0.28.8",
+    "@types/stats.js": "^0.17.3",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.5",
+    "typescript": "^5"
+  }
+}
