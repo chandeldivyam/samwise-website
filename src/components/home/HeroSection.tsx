@@ -166,7 +166,7 @@ const HeroSection: React.FC = () => {
                 <MuiButton
                   variant="contained"
                   size="large"
-                  href="https://discord.gg/hU87q8ME"
+                  href="https://discord.gg/XbFpSsxGhG"
                   target="_blank"
                   rel="noopener noreferrer"
                   startIcon={<DiscordIcon />}
