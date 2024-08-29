@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Modal, Box, Typography, Button, Grid, IconButton, CircularProgress, Fade, Zoom } from '@mui/material';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Modal, Box, Typography, Button, Grid, IconButton, CircularProgress, Fade, Zoom, TextField, Snackbar } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import WindowsIcon from '@mui/icons-material/Microsoft';
 import AppleIcon from '@mui/icons-material/Apple';
@@ -14,26 +14,74 @@ interface DownloadModalProps {
 }
 
 interface DownloadButtonProps {
-    asset: { browser_download_url: string; size: number } | undefined;
-    os: string;
-    icon: React.ReactNode;
-    color: string;
-  }
-  
-  
+  asset: { browser_download_url: string; size: number } | undefined;
+  os: string;
+  icon: React.ReactNode;
+  color: string;
+  onClick: () => void;
+  isSelected: boolean;
+}
 
 interface Release {
-    tag_name: string;
-    assets: {
-        name: string;
-        browser_download_url: string;
-        size: number;
-    }[];
+  tag_name: string;
+  assets: {
+    name: string;
+    browser_download_url: string;
+    size: number;
+  }[];
 }
+
+const DownloadButton: React.FC<DownloadButtonProps> = React.memo(({ asset, os, icon, color, onClick, isSelected }) => (
+  <Zoom in={true}>
+    <Button
+      variant="contained"
+      fullWidth
+      onClick={onClick}
+      sx={{
+        backgroundColor: isSelected ? color : 'rgba(255, 255, 255, 0.7)',
+        color: isSelected ? 'white' : 'black',
+        '&:hover': { 
+          backgroundColor: isSelected ? color : 'rgba(255, 255, 255, 0.9)', 
+          filter: 'brightness(110%)',
+          transform: 'scale(1.05)',
+          transition: 'all 0.3s ease-in-out'
+        },
+        textTransform: 'none',
+        borderRadius: 3,
+        fontWeight: 'bold',
+        py: 2,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        height: '100%',
+        boxShadow: 3,
+        transition: 'all 0.3s ease-in-out',
+        opacity: asset ? 1 : 0.5,
+        cursor: asset ? 'pointer' : 'not-allowed',
+      }}
+    >
+      <Box sx={{ mb: 1, fontSize: '2rem', color: isSelected ? 'white' : color }}>{icon}</Box>
+      <Typography variant="h6" sx={{ mb: 0.5 }}>
+        {os}
+      </Typography>
+      <Typography variant="body2" sx={{ opacity: 0.8 }}>
+        {asset ? `${(asset.size / 1024 / 1024).toFixed(1)} MB` : 'Coming soon!'}
+      </Typography>
+    </Button>
+  </Zoom>
+));
+
+DownloadButton.displayName = 'DownloadButton';
 
 const DownloadModal: React.FC<DownloadModalProps> = ({ open, onClose }) => {
   const [releases, setReleases] = useState<Release | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedAsset, setSelectedAsset] = useState<{ url: string; name: string } | null>(null);
+  const [email, setEmail] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [isEmailValid, setIsEmailValid] = useState(true);
 
   useEffect(() => {
     if (open) {
@@ -51,60 +99,115 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ open, onClose }) => {
     }
   }, [open]);
 
-  const handleDownload = (url: string, os: string) => {
-    trackButtonClick(`Download ${os}`, 'download_modal');
-    window.location.href = url;
-    confetti({
-      particleCount: 100,
-      spread: 70,
-      origin: { y: 0.6 }
-    });
-    onClose();
+  const handleAssetSelection = useCallback((url: string, name: string) => {
+    setSelectedAsset({ url, name });
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedAsset) return;
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setIsEmailValid(false);
+      return;
+    }
+    setIsEmailValid(true);
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch('/api/loops', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          downloadUrl: selectedAsset.url,
+          applicationName: selectedAsset.name,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to submit');
+      }
+
+      setSnackbarMessage('Thank you! Check your email for download instructions.');
+      setSnackbarOpen(true);
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 }
+      });
+      onClose();
+    } catch (error) {
+      console.error('Error submitting:', error);
+      setSnackbarMessage('An error occurred. Please try again.');
+      setSnackbarOpen(true);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const windowsAsset = releases?.assets.find(asset => asset.name.endsWith('.exe'));
-  const macIntelAsset = releases?.assets.find(asset => asset.name.includes('x64.dmg'));
-  const macM1Asset = releases?.assets.find(asset => asset.name.includes('aarch64.dmg'));
-  const linuxAsset = releases?.assets.find(asset => asset.name.endsWith('.deb') || asset.name.endsWith('.rpm'));
+  const assets = useMemo(() => {
+    if (!releases) return null;
+    return {
+      windowsAsset: releases.assets.find(asset => asset.name.endsWith('.exe')),
+      macIntelAsset: releases.assets.find(asset => asset.name.includes('x64.dmg')),
+      macM1Asset: releases.assets.find(asset => asset.name.includes('aarch64.dmg')),
+      linuxAsset: releases.assets.find(asset => asset.name.endsWith('.deb') || asset.name.endsWith('.rpm'))
+    };
+  }, [releases]);
 
-  const DownloadButton: React.FC<DownloadButtonProps> = ({ asset, os, icon, color }) => (
-    <Zoom in={!isLoading} style={{ transitionDelay: isLoading ? '500ms' : '0ms' }}>
-      <Button
-        variant="contained"
-        fullWidth
-        onClick={() => asset && handleDownload(asset.browser_download_url, os)}
-        sx={{
-          backgroundColor: color,
-          '&:hover': { 
-            backgroundColor: color, 
-            filter: 'brightness(110%)',
-            transform: 'scale(1.05)',
-            transition: 'all 0.3s ease-in-out'
-          },
-          textTransform: 'none',
-          borderRadius: 3,
-          fontWeight: 'bold',
-          py: 2,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          height: '100%',
-          boxShadow: 3,
-          transition: 'all 0.3s ease-in-out'
-        }}
-      >
-        <Box sx={{ mb: 1, fontSize: '2rem' }}>{icon}</Box>
-        <Typography variant="h6" sx={{ mb: 0.5 }}>
-          {os}
-        </Typography>
-        <Typography variant="body2" sx={{ opacity: 0.8 }}>
-          {asset ? `${(asset.size / 1024 / 1024).toFixed(1)} MB` : 'Coming soon!'}
-        </Typography>
-      </Button>
-    </Zoom>
-  );
+  const renderDownloadButtons = useMemo(() => {
+    if (!assets) return null;
+    const { windowsAsset, macIntelAsset, macM1Asset, linuxAsset } = assets;
+    return (
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <DownloadButton
+            asset={windowsAsset}
+            os="Windows"
+            icon={<WindowsIcon fontSize="large" />}
+            color="#0078D7"
+            onClick={() => windowsAsset && handleAssetSelection(windowsAsset.browser_download_url, 'Samwise for Windows')}
+            isSelected={selectedAsset?.name === 'Samwise for Windows'}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <DownloadButton
+            asset={macIntelAsset}
+            os="Mac (Intel)"
+            icon={<AppleIcon fontSize="large" />}
+            color="#000000"
+            onClick={() => macIntelAsset && handleAssetSelection(macIntelAsset.browser_download_url, 'Samwise for Mac (Intel)')}
+            isSelected={selectedAsset?.name === 'Samwise for Mac (Intel)'}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <DownloadButton
+            asset={macM1Asset}
+            os="Mac (Arm)"
+            icon={<AppleIcon fontSize="large" />}
+            color="#000000"
+            onClick={() => macM1Asset && handleAssetSelection(macM1Asset.browser_download_url, 'Samwise for Mac (Arm)')}
+            isSelected={selectedAsset?.name === 'Samwise for Mac (Arm)'}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <DownloadButton
+            asset={linuxAsset}
+            os="Linux"
+            icon={<LinuxIcon fontSize="large" />}
+            color="#dd5814"
+            onClick={() => linuxAsset && handleAssetSelection(linuxAsset.browser_download_url, 'Samwise for Linux')}
+            isSelected={selectedAsset?.name === 'Samwise for Linux'}
+          />
+        </Grid>
+      </Grid>
+    );
+  }, [assets, selectedAsset, handleAssetSelection]);
 
   return (
+    <>
     <Modal open={open} onClose={onClose} closeAfterTransition>
       <Fade in={open}>
         <Box
@@ -175,47 +278,52 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ open, onClose }) => {
             <Typography variant="body2" sx={{ fontStyle: 'italic', color: '#888' }}>
                 This is just the beginning. Samwise is evolving to revolutionize your communications.
             </Typography>
-        </Box>
+          </Box>
 
           {isLoading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200 }}>
               <CircularProgress size={60} thickness={4} />
             </Box>
           ) : (
-            <Grid container spacing={3}>
-              <Grid item xs={12} sm={6} md={3}>
-                <DownloadButton
-                  asset={windowsAsset}
-                  os="Windows"
-                  icon={<WindowsIcon fontSize="large" />}
-                  color="#0078D7"
-                />
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <DownloadButton
-                  asset={macIntelAsset}
-                  os="Mac (Intel)"
-                  icon={<AppleIcon fontSize="large" />}
-                  color="#000000"
-                />
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <DownloadButton
-                  asset={macM1Asset}
-                  os="Mac (Arm)"
-                  icon={<AppleIcon fontSize="large" />}
-                  color="#000000"
-                />
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <DownloadButton
-                  asset={linuxAsset}
-                  os="Linux"
-                  icon={<LinuxIcon fontSize="large" />}
-                  color="#dd5814"
-                />
-              </Grid>
-            </Grid>
+            <>
+              {renderDownloadButtons}
+
+              {selectedAsset && (
+                <Box component="form" onSubmit={handleSubmit} sx={{ 
+                  mt: 2, 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  gap: 2,
+                  borderRadius: 4,
+                  p: 2,
+                }}>
+                  <TextField
+                    label="Email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    error={!isEmailValid}
+                    helperText={!isEmailValid ? 'Please enter a valid email address' : ''}
+                    sx={{ flexGrow: 1, maxWidth: '60%', backgroundColor: 'rgba(255, 255, 255, 0.8)', }}
+                  />
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    disabled={isSubmitting}
+                    sx={{
+                      backgroundColor: '#FE6B8B',
+                      '&:hover': { backgroundColor: '#FF8E53' },
+                      borderRadius: 20,
+                      px: 4,
+                      py: 1,
+                    }}
+                  >
+                    {isSubmitting ? <CircularProgress size={24} /> : 'Get Access'}
+                  </Button>
+                </Box>
+              )}
+            </>
           )}
 
           <Box sx={{ mt: 4, textAlign: 'center', p: 2, bgcolor: 'rgba(255, 255, 255, 0.7)', borderRadius: 2 }}>
@@ -244,6 +352,13 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ open, onClose }) => {
         </Box>
       </Fade>
     </Modal>
+    <Snackbar
+      open={snackbarOpen}
+      autoHideDuration={6000}
+      onClose={() => setSnackbarOpen(false)}
+      message={snackbarMessage}
+    />
+    </>
   );
 };
 
