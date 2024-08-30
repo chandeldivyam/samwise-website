@@ -106,16 +106,20 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ open, onClose }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedAsset) return;
-
+  
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       setIsEmailValid(false);
       return;
     }
     setIsEmailValid(true);
-
+  
     setIsSubmitting(true);
     try {
+      // Start the download
+      window.location.href = selectedAsset.url;
+  
+      // Submit the email and download info
       const response = await fetch('/api/loops', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -125,12 +129,12 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ open, onClose }) => {
           applicationName: selectedAsset.name,
         }),
       });
-
+  
       if (!response.ok) {
         throw new Error('Failed to submit');
       }
-
-      setSnackbarMessage('Thank you! Check your email for download instructions.');
+  
+      setSnackbarMessage('Thank you! Your download has started. Check your email for additional instructions.');
       setSnackbarOpen(true);
       confetti({
         particleCount: 100,
