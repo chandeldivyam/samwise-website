@@ -212,7 +212,7 @@ const HeroSection: React.FC = () => {
                     height: '100%',
                     border: 'none',
                   }}
-                  src="https://www.youtube.com/embed/SQqDcy4Xne4"
+                  src="https://www.youtube.com/embed/RWdz5WONMek"
                   title="Samwise Demo Video"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
